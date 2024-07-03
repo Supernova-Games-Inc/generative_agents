@@ -195,7 +195,9 @@ def GPT_request(prompt, gpt_parameter):
       "role": "system", "content": prompt
     }]
     response = client.chat.completions.create(
-                model=gpt_parameter["engine"],
+                # I change here
+                # model=gpt_parameter["engine"],
+                model=openai_config["model"],
                 messages=messages,
                 temperature=gpt_parameter["temperature"],
                 max_tokens=gpt_parameter["max_tokens"],
@@ -207,6 +209,7 @@ def GPT_request(prompt, gpt_parameter):
     cost_logger.update_cost(response=response, input_cost=openai_config["model-costs"]["input"], output_cost=openai_config["model-costs"]["output"])
     return response.choices[0].message.content
   except Exception as e:
+    print("I WANT TO SEE WHETHER I REACH HERE", gpt_parameter["engine"])
     print(f"Error: {e}")
     return "TOKEN LIMIT EXCEEDED"
 
@@ -250,6 +253,7 @@ def safe_generate_response(prompt,
     print (prompt)
 
   for i in range(repeat): 
+    # print("CHECK HERE", gpt_parameter)
     curr_gpt_response = GPT_request(prompt, gpt_parameter)
     try:
       if func_validate(curr_gpt_response, prompt=prompt): 
@@ -277,6 +281,7 @@ if __name__ == '__main__':
                    "temperature": 0, "top_p": 1, "stream": False,
                    "frequency_penalty": 0, "presence_penalty": 0, 
                    "stop": ['"']}
+  
   curr_input = ["driving to a friend's house"]
   prompt_lib_file = "prompt_template/test_prompt_July5.txt"
   prompt = generate_prompt(curr_input, prompt_lib_file)
