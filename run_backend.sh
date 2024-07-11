@@ -7,7 +7,7 @@ LOGS_PATH="../../logs"
 
 echo "Running backend server at: http://127.0.0.1:8000/simulator_home"
 cd ${BACKEND_SCRIPT_PATH}
-source /home/${USER}/anaconda3/bin/activate ${CONDA_ENV}
+# source /home/${USER}/anaconda3/bin/activate ${CONDA_ENV}
 
 timestamp=$(date +"%Y-%m-%d_%H-%M-%S")
 echo "Timestamp: ${timestamp}"

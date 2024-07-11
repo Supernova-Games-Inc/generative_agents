@@ -7,7 +7,7 @@ LOGS_PATH="../../logs"
 
 FILE_NAME="Bash-Script"
 cd ${BACKEND_SCRIPT_PATH}
-source /home/${USER}/anaconda3/bin/activate ${CONDA_ENV}
+# source /home/${USER}/anaconda3/bin/activate ${CONDA_ENV}
 
 ARGS=""
 while [[ $# -gt 0 ]]; do
