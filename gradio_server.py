@@ -115,22 +115,32 @@ def start_simulation(sim_name, steps):
         # command = ['./run_backend_automatic.sh', '-o', 'skip-morning-s-14', '-t', 'test_gradio', '-s', '3100']
         # Execute the shell script with an argument
         result = subprocess.run(command, check=True, text=True, capture_output=True)
-        print(command)
-        return result.stdout, None  # Return stdout and no error
+        # print(command)
+        return result.stdout # Return stdout and no error
 
     except subprocess.CalledProcessError as e:
         # If the script execution failed, return None and stderr
         print("error", e)
-        return None, e.stderr
+        return e.stderr
 
     except Exception as e:
         print(f"An error occurred: {e}")
+        return e.stderr
+
+def summary_simulation(sim_name, steps):
+    return f"TEMP SUMMARY FOR {sim_name} on steps {steps}"
+
+def delete_simulation(sim_name, steps):
+    return f"DELETE SIMULATION FOR {sim_name} on steps {steps}"
 
 def update_step_range(all_sim_names):
     return gr.update(maximum=all_sims[all_sim_names]["step"], interactive=True)
 
 def set_replay(all_sim_names, step):
-    return gr.update(link=f'http://localhost:8000/replay/{all_sim_names}/{step}/', interactive=True)
+    replay_link = f'http://localhost:8000/replay/{all_sim_names}/{step}/'
+    # return gr.update(link=replay_link, interactive=True)
+    # return gr.update(link=replay_link, interactive=True)
+    return [replay_link, gr.update(interactive=True)]
 
 def main():
     global agents, all_sims
@@ -160,22 +170,30 @@ def main():
         with gr.Row():
             start_button = gr.Button("Start Simulation!")
             watch_sim_button = gr.Button("Watch Live Simulation",link='http://localhost:8000/simulator_home')
+            summary_button = gr.Button("Get Summary")
+            delete_button = gr.Button("Delete Simulation")
         
 
-        output_add = gr.Textbox(label="Output")
-        sim_result = gr.Textbox(label="simulation_result")
+        std_output = gr.Textbox(label="Running Output")
+        sim_result = gr.Textbox(label="Simulation Result")
+        link_text = gr.Textbox(label="REPLAY LINK", visible=False)
 
         with gr.Row():
             all_sim_names = gr.Dropdown(list(all_sims.keys()), label="Select Simulations")
             sim_start_step = gr.Number(minimum=1, maximum=100, value = 1, label="Steps")
             # speed = gr.Radio(choices=[1,2,3,4,5], value=1, label="Speed")
-            sim_replay_button = gr.Button("Watch Simulation Replay", link=None, interactive=False)
+            sim_replay_button = gr.Button("Watch Simulation Replay", interactive=False)
   
 
         # all_sim_names.change(enable_buttom, inputs=None, outputs=sim_replay_button)
         agent_name.change(show_agent_info, inputs=[agent_name], outputs=[input_age, input_daily_req, input_innate, input_learned, input_currently, input_lifestyle, input_living_area, update_button])
         all_sim_names.change(update_step_range, inputs=all_sim_names, outputs=[sim_start_step])
-        sim_start_step.change(set_replay, inputs=[all_sim_names, sim_start_step], outputs=[sim_replay_button])
+        sim_start_step.change(set_replay, inputs=[all_sim_names, sim_start_step], outputs=[link_text, sim_replay_button])
+
+        sim_replay_button.click(fn=None,inputs=link_text , js=f"(link_text) => {{ window.open(link_text, '_blank') }}")
+
+
+        # sim_replay_button.click(fn=set_replay,inputs=[all_sim_names, sim_start_step], outputs=link_text , js=f"(link_text) => {{ window.open(link_text, '_blank') }}")
 
 
         input_list = [input_age, input_daily_req, input_innate, input_learned, input_currently, input_lifestyle, input_living_area, input_memory]     
@@ -184,8 +202,10 @@ def main():
             input_field.change(enable_buttom, inputs=None, outputs=update_button)
 
         
-        update_button.click(update_agent, inputs=[agent_name, input_age, input_daily_req, input_innate, input_learned, input_currently, input_lifestyle, input_living_area], outputs=[update_button, output_add])
-        start_button.click(start_simulation, inputs=[sim_name, sim_steps], outputs = sim_result)
+        update_button.click(update_agent, inputs=[agent_name, input_age, input_daily_req, input_innate, input_learned, input_currently, input_lifestyle, input_living_area], outputs=[update_button, std_output])
+        start_button.click(start_simulation, inputs=[sim_name, sim_steps], outputs = std_output)
+        summary_button.click(summary_simulation, inputs=[sim_name, sim_steps], outputs = sim_result)
+        delete_button.click(delete_simulation, inputs=[sim_name, sim_steps], outputs = sim_result)
 
 
     demo.launch(server_port=8005, max_threads=1, inbrowser=True, share=True)
