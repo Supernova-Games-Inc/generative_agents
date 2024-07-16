@@ -109,6 +109,8 @@ class ReverieServer:
     # of the number of tiles. 
     self.step = reverie_meta['step']
 
+    self.prev_step = reverie_meta['step']
+
     # SETTING UP PERSONAS IN REVERIE
     # <personas> is a dictionary that takes the persona's full name as its 
     # keys, and the actual persona instance as its values.
@@ -192,7 +194,9 @@ class ReverieServer:
     reverie_meta["sec_per_step"] = self.sec_per_step
     reverie_meta["maze_name"] = self.maze.maze_name
     reverie_meta["persona_names"] = list(self.personas.keys())
+    reverie_meta['start_step'] = self.prev_step
     reverie_meta["step"] = self.step
+    # reverie_meta["summary"] = self.step
     reverie_meta_f = f"{sim_folder}/reverie/meta.json"
     with open(reverie_meta_f, "w") as outfile: 
       outfile.write(json.dumps(reverie_meta, indent=2))
@@ -200,7 +204,7 @@ class ReverieServer:
     # Save the personas.
     for persona_name, persona in self.personas.items(): 
       save_folder = f"{sim_folder}/personas/{persona_name}/bootstrap_memory"
-      persona.save(save_folder)
+      persona.save(save_folder, self.prev_step)
 
 
   def start_path_tester_server(self): 

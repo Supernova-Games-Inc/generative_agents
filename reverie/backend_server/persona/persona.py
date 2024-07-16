@@ -12,6 +12,7 @@ import math
 import sys
 import datetime
 import random
+import json
 sys.path.append('../')
 
 from global_methods import *
@@ -48,7 +49,7 @@ class Persona:
     self.scratch = Scratch(scratch_saved)
 
 
-  def save(self, save_folder): 
+  def save(self, save_folder, prev_step): 
     """
     Save persona's current state (i.e., memory). 
 
@@ -70,12 +71,46 @@ class Persona:
     # e.g., event,2022-10-23 00:00:00,,Isabella Rodriguez,is,idle
     f_a_mem = f"{save_folder}/associative_memory"
     self.a_mem.save(f_a_mem)
+    print(f_a_mem)
+
+    total_minutes = int(prev_step / 6)
+    hour = int(total_minutes // 60)
+    mins = int(total_minutes % 60)
+
+    with open(f"{f_a_mem}/nodes.json", "r") as f:
+      json_data = json.load(f)
+      # print(json_data.keys())
+      summary = ''
+      for each in json_data.keys():
+        # print(type(json_data[each]["created"]))
+        created_hour, created_min, created_sec = json_data[each]["created"].split(" ")[1].split(":")
+        created_total_mins = int(created_hour) * 60 + int(created_min)
+        print(created_hour, created_min, created_sec, total_minutes, created_total_mins)
+        if created_total_mins > total_minutes:
+          if json_data[each]['type'] == "event" and int(json_data[each]["poignancy"]) > 2:
+            summary += json_data[each]["created"] + json_data[each]["description"] + json_data[each]["description"] + "\n"
+          elif json_data[each]['type'] != "event":
+            summary += json_data[each]["created"] + json_data[each]["description"] + json_data[each]["description"] + "\n"
+
+        print(summary)
+
+        # if json_data[each]['type'] == "event" and int(json_data[each]["poignancy"]) > 2:
+        #   summary += json_data[each]["created"] + json_data[each]["description"] + json_data[each]["description"] + "\n"
+        # elif json_data[each]['type'] != "event":
+        #   summary += json_data[each]["created"] + json_data[each]["description"] + json_data[each]["description"] + "\n"
+
+        # print(summary)
+
 
     # Scratch contains non-permanent data associated with the persona. When 
     # it is saved, it takes a json form. When we load it, we move the values
     # to Python variables. 
     f_scratch = f"{save_folder}/scratch.json"
     self.scratch.save(f_scratch)
+    # print(f_scratch)
+    # with open(f"{save_folder}/scratch.json", "r") as f:
+    #   json_data = json.load(f)
+    #   print(json_data.keys())
 
 
   def perceive(self, maze):

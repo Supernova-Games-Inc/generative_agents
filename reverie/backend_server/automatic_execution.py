@@ -16,7 +16,7 @@ from multiprocessing import Process
 from openai_cost_logger import OpenAICostLoggerViz
 
 
-def parse_args() -> Tuple[str, str, int, bool]:
+def parse_args() -> Tuple[str, str, int, int, bool]:
     """Parse bash arguments
 
     Returns:
@@ -24,6 +24,7 @@ def parse_args() -> Tuple[str, str, int, bool]:
             - name of the forked simulation
             - the name of the new simulation
             - total steps to run (step = 10sec in the simulation)
+            - check point (default = 200)
             - open the simulator UI
     """
     parser = argparse.ArgumentParser(description='Reverie Server')
@@ -46,6 +47,12 @@ def parse_args() -> Tuple[str, str, int, bool]:
         help='Total steps to run'
     )
     parser.add_argument(
+        '--check',
+        type=str,
+        default="200", 
+        help='check point freq'
+    )
+    parser.add_argument(
         '--ui',
         type=str,
         default="True",
@@ -66,12 +73,13 @@ def parse_args() -> Tuple[str, str, int, bool]:
     origin = parser.parse_args().origin
     target = parser.parse_args().target
     steps = parser.parse_args().steps
+    check = parser.parse_args().check
     ui = parser.parse_args().ui
     ui = True if ui.lower() == "true" else False
     browser_path = parser.parse_args().browser_path
     port = parser.parse_args().port
     
-    return origin, target, steps, ui, browser_path, port
+    return origin, target, steps, check, ui, browser_path, port
 
 
 def get_starting_step(exp_name: str) -> int:
@@ -161,16 +169,21 @@ def save_checkpoint(rs, idx: int, th: Process) -> Tuple[str, int, int]:
     """
     target = rs.sim_code
     rs.open_server(input_command="fin")
+    # add summary here
+    # one summary about what happend so far
+    # agent summary action per checkpoint
+
     print(f"(Auto-Exec): Checkpoint saved: {target}", flush=True)    
     return target, get_starting_step(target), idx+1
     
 
 if __name__ == '__main__':
     # checkpoint_freq = 200 # 1 step = 10 sec
-    checkpoint_freq = 100 # 1 step = 10 sec
+    # change as a vairiable
     log_path = "cost-logs" # where the simulations' prints are stored
     idx = 0
-    origin, target, tot_steps, ui, browser_path, port = parse_args()
+    origin, target, tot_steps, check_point, ui, browser_path, port = parse_args()
+    checkpoint_freq = int(check_point) # 1 step = 10 sec
     current_step = get_starting_step(origin)
     exp_name = target
     start_time = datetime.now()
@@ -202,6 +215,7 @@ if __name__ == '__main__':
             print("(Auto-Exec): KeyboardInterrupt: Stopping the experiment.", flush=True)
             sys.exit(0)
         except Exception as e:
+            print("what")
             print(e, flush=True)
             step = e.args[1]
             if step != 0:

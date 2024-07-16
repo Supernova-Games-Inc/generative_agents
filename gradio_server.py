@@ -12,6 +12,17 @@ script_path = './run_backend_automatic.sh'
 agents = {}
 all_sims = {}
 
+def time_2_step(hour, mins):
+    mins += hour * 60
+    steps = mins * 6
+    return steps
+
+def step_2_time(steps):
+    total_minutes = steps / 6
+    hour = int(total_minutes // 60)
+    mins = int(total_minutes % 60)
+    return hour, mins
+
 def show_agent_info(agent_name):
     if agent_name in agents:
         agent = agents[agent_name]
@@ -97,9 +108,10 @@ def update_json_from_directories(base_path, filename):
                     else:
                         print(file_path, os.path.exists(file_path))
 
-def start_simulation(sim_name, steps):
+def start_simulation(sim_name, steps, check_freq):
     try:
         print("Current Directory:", os.getcwd())
+        check_freq *= 6
         with open(f"{storage_path}/{sim_base_name}/{meta_file}", 'r') as f:
             temp_data = json.load(f)
             curr_step = temp_data["step"]
@@ -109,6 +121,7 @@ def start_simulation(sim_name, steps):
             '-o', sim_base_name,
             '-t', sim_name,
             '-s', str(curr_step+steps),
+            '-c', str(check_freq)
         ]
         command = [path] + options
         print(command)
@@ -138,8 +151,6 @@ def update_step_range(all_sim_names):
 
 def set_replay(all_sim_names, step):
     replay_link = f'http://localhost:8000/replay/{all_sim_names}/{step}/'
-    # return gr.update(link=replay_link, interactive=True)
-    # return gr.update(link=replay_link, interactive=True)
     return [replay_link, gr.update(interactive=True)]
 
 def main():
@@ -148,7 +159,7 @@ def main():
     all_sims = read_sims_from_directories()
 
     with gr.Blocks() as demo:
-        gr.Markdown("## Select or Update an Agent")
+        gr.Markdown("## New Simulation: Select and Update Agent")
         with gr.Row():
             agent_name = gr.Dropdown(list(agents.keys()), label="Select Agent")
             update_button = gr.Button("Update Agent Information", interactive=False)
@@ -166,24 +177,40 @@ def main():
 
         with gr.Row():
             sim_name = gr.Text(label="Simulation Name", placeholder = "new_sim")
+            sim_start_hour = gr.Number(minimum=0, maximum=24, value = 0, label="Hour")
+            sim_start_mins = gr.Number(minimum=0, maximum=59, value = 0, label="Mins")
+            sim_check_freq = gr.Number(minimum=15, maximum=120, step=15,label="check_point_freq")
             sim_steps = gr.Number(label="Simulation Steps")
         with gr.Row():
             start_button = gr.Button("Start Simulation!")
-            watch_sim_button = gr.Button("Watch Live Simulation",link='http://localhost:8000/simulator_home')
-            summary_button = gr.Button("Get Summary")
-            delete_button = gr.Button("Delete Simulation")
-        
+            watch_sim_button = gr.Button("Watch Live Simulation",link='http://localhost:8000/simulator_home') 
 
         std_output = gr.Textbox(label="Running Output")
         sim_result = gr.Textbox(label="Simulation Result")
-        link_text = gr.Textbox(label="REPLAY LINK", visible=False)
 
+        gr.Markdown("## Simulation Process")
+        with gr.Row():
+            summary_button = gr.Button("Get Summary")
+            all_agents = gr.Dropdown(list(agents.keys()), multiselect=True, label="Select Agent")
+            delete_button = gr.Button("Delete Simulation")
+
+        gr.Markdown("## Simulation Replay")
         with gr.Row():
             all_sim_names = gr.Dropdown(list(all_sims.keys()), label="Select Simulations")
             sim_start_step = gr.Number(minimum=1, maximum=100, value = 1, label="Steps")
+            # sim_start_hour = gr.Number(minimum=0, maximum=24, value = 0, label="Hour")
+            # sim_start_mins = gr.Number(minimum=0, maximum=59, value = 0, label="Mins")
+            step_convert = gr.Number(label="convert")
+            new_hour = gr.Number(minimum=0, maximum=24, value = 0, label="New Hour")
+            new_mins = gr.Number(minimum=0, maximum=59, value = 0, label="New Mins")
             # speed = gr.Radio(choices=[1,2,3,4,5], value=1, label="Speed")
             sim_replay_button = gr.Button("Watch Simulation Replay", interactive=False)
+            link_text = gr.Textbox(label="REPLAY LINK", visible=False)
   
+        sim_start_hour.change(time_2_step, inputs = [sim_start_hour, sim_start_mins], outputs=sim_steps)
+        sim_start_mins.change(time_2_step, inputs = [sim_start_hour, sim_start_mins], outputs=sim_steps)
+        # step_convert.change(step_2_time, inputs = step_convert, outputs=[new_hour, new_mins])
+
 
         # all_sim_names.change(enable_buttom, inputs=None, outputs=sim_replay_button)
         agent_name.change(show_agent_info, inputs=[agent_name], outputs=[input_age, input_daily_req, input_innate, input_learned, input_currently, input_lifestyle, input_living_area, update_button])
@@ -203,12 +230,12 @@ def main():
 
         
         update_button.click(update_agent, inputs=[agent_name, input_age, input_daily_req, input_innate, input_learned, input_currently, input_lifestyle, input_living_area], outputs=[update_button, std_output])
-        start_button.click(start_simulation, inputs=[sim_name, sim_steps], outputs = std_output)
+        start_button.click(start_simulation, inputs=[sim_name, sim_steps, sim_check_freq], outputs = std_output)
         summary_button.click(summary_simulation, inputs=[sim_name, sim_steps], outputs = sim_result)
         delete_button.click(delete_simulation, inputs=[sim_name, sim_steps], outputs = sim_result)
 
 
-    demo.launch(server_port=8005, max_threads=1, inbrowser=True, share=True)
+    demo.launch(server_port=8005, inbrowser=True, share=True)
     # demo.launch(server_port=8005, share=True,
     #             server_name="0.0.0.0", show_api=False)
 

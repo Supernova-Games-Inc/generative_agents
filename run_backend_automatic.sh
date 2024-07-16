@@ -28,6 +28,11 @@ while [[ $# -gt 0 ]]; do
             shift
             shift
             ;;
+        --check|-c)
+            ARGS="${ARGS} --check ${2}"
+            shift
+            shift
+            ;;
         --ui)
             ARGS="${ARGS} --ui ${2}"
             shift
