@@ -47,6 +47,7 @@ class Persona:
     # <scratch> is the persona's scratch (short term memory) space. 
     scratch_saved = f"{folder_mem_saved}/bootstrap_memory/scratch.json"
     self.scratch = Scratch(scratch_saved)
+    self.num_nodes = self.a_mem.get_node_count()
 
 
   def save(self, save_folder, prev_step): 
@@ -73,26 +74,32 @@ class Persona:
     self.a_mem.save(f_a_mem)
     print(f_a_mem)
 
-    total_minutes = int(prev_step / 6)
-    hour = int(total_minutes // 60)
-    mins = int(total_minutes % 60)
+    total_sec = int(prev_step * 10)
+    summary = {"event":{}, 'thought':{}, 'chat':{}}
 
     with open(f"{f_a_mem}/nodes.json", "r") as f:
       json_data = json.load(f)
       # print(json_data.keys())
-      summary = ''
       for each in json_data.keys():
-        # print(type(json_data[each]["created"]))
-        created_hour, created_min, created_sec = json_data[each]["created"].split(" ")[1].split(":")
-        created_total_mins = int(created_hour) * 60 + int(created_min)
-        print(created_hour, created_min, created_sec, total_minutes, created_total_mins)
-        if created_total_mins > total_minutes:
-          if json_data[each]['type'] == "event" and int(json_data[each]["poignancy"]) > 2:
-            summary += json_data[each]["created"] + json_data[each]["description"] + json_data[each]["description"] + "\n"
-          elif json_data[each]['type'] != "event":
-            summary += json_data[each]["created"] + json_data[each]["description"] + json_data[each]["description"] + "\n"
+        # json_data[each]
+        # # print(type(json_data[each]["created"]))
+        # created_hour, created_min, created_sec = json_data[each]["created"].split(" ")[1].split(":")
+        # created_total_sec = int(created_hour) * 360 + int(created_min) * 60 + int(created_sec)
+        if int(json_data[each]["node_count"]) > int(self.num_nodes):
+          # new_generated nodes
+          # print(created_hour, created_min, created_sec, total_sec, created_total_sec)
+          if json_data[each]['type'] == "event" and int(json_data[each]["poignancy"]) > 3:
+            summary["event"][str(json_data[each]["created"])] = json_data[each]
+            # summary["event"].append(str(json_data[each]["node_count"]) +" "+ str(json_data[each]["created"]) +" "+ str(json_data[each]["description"]) +" "+ str(json_data[each]["poignancy"]) + "\n")
+          elif json_data[each]['type'] == "thought":
+            # summary[json_data[each]['type']].append(str(json_data[each]["node_count"]) +" "+ str(json_data[each]["created"]) +" "+ str(json_data[each]["description"]) +" "+ str(json_data[each]["poignancy"]) + "\n")
+            summary['thought'][str(json_data[each]["created"])] = json_data[each]
 
-        print(summary)
+      print(summary)
+
+      with open(f"{save_folder}/summary.json", 'w') as f:
+        data = {"new summary":summary, "new_nodes":summary, "curr_nodes": len(json_data), "prev_node":self.num_nodes,"prev_step": prev_step}
+        json.dump(data, f, indent=4)
 
         # if json_data[each]['type'] == "event" and int(json_data[each]["poignancy"]) > 2:
         #   summary += json_data[each]["created"] + json_data[each]["description"] + json_data[each]["description"] + "\n"
@@ -101,7 +108,7 @@ class Persona:
 
         # print(summary)
 
-
+    self.num_nodes = len(json_data)
     # Scratch contains non-permanent data associated with the persona. When 
     # it is saved, it takes a json form. When we load it, we move the values
     # to Python variables. 

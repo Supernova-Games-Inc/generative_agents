@@ -108,6 +108,8 @@ class AssociativeMemory:
     if kw_strength_load["kw_strength_thought"]: 
       self.kw_strength_thought = kw_strength_load["kw_strength_thought"]
 
+  def get_node_count(self):
+    return len(self.id_to_node)
     
   def save(self, out_json): 
     r = dict()
