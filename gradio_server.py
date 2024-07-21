@@ -2,6 +2,8 @@ import gradio as gr
 import os
 import json
 import subprocess
+import datetime
+from sorted_key_value_store import SortedKeyValueStore
 
 sim_base_name = 'zora_gradio_25_skip_test'
 storage_path = "environment/frontend_server/storage"
@@ -11,7 +13,7 @@ agent_file_name = 'bootstrap_memory/scratch.json'
 script_path = './run_backend_automatic.sh'
 agents = {}
 all_sims = {}
-check_point = {}
+check_point_map = SortedKeyValueStore()
 
 def time_2_step(hour, mins):
     mins += hour * 60
@@ -147,9 +149,10 @@ def start_simulation(sim_name, steps, check_freq):
 def summary_simulation(sim_name, steps):
     return f"TEMP SUMMARY FOR {sim_name} on steps {steps}"
 
-def get_check_point_summary(sim_name):
+def get_check_point_summary(sim_check_point_time):
     all_agent_name = agents.keys()
     summary = {}
+    sim_name = check_point_map.get_key(sim_check_point_time)
     base_path = f"{storage_path}/{sim_name}/personas"
     with os.scandir(base_path) as entries:
         for entry in entries:
@@ -169,14 +172,12 @@ def get_check_point_summary(sim_name):
                     return "Summary is not ready, please wait for the current checkpoint of simulation to finish."
     return format_check_point_summary(summary)
 
-def check_point_step_2_time():
-    return
-
-def get_summary(sim_name, agents):
+def get_summary(sim_check_point_time, agents):
     if len(agents) < 1:
         return "Please select at least one agents to see the summary details."
     else:
         summary = ""
+        sim_name = check_point_map.get_key(sim_check_point_time)
         base_path = f"{storage_path}/{sim_name}/personas"
         with os.scandir(base_path) as entries:
             for entry in entries:
@@ -205,6 +206,32 @@ def dict_2_str(the_dict):
             temp += str(i+1) + " : " + each + "\n"
         result += f" {k} \n {temp} \n"
     return result
+
+def check_point_step_2_time(check_points):
+    global check_point_map
+    
+    for each in check_points:
+        pattern = each.split("-")
+        print(pattern)
+        if each not in check_point_map.get_sorted_keys():
+            start_sec, end_sec = int(pattern[3]) * 10, int(pattern[4]) * 10
+            start_time = datetime.timedelta(seconds=start_sec)
+            end_time = datetime.timedelta(seconds=end_sec)
+            # start_hour, start_min = step_2_time(int(pattern[3]))
+            # end_hour, end_min = step_2_time(int(pattern[4]))
+            name = pattern[0]
+            period =  f"{name} [{start_time} -- {end_time}]"
+            check_point_map.insert(each, period)
+    print(check_point_map)
+    # result_key = list(check_point_map.keys())
+    # result_key.sort()
+    # result_time, result_step = [], []
+
+    # for each in result_key:
+    #     result_step.append(check_point_map[each][0])
+    #     result_time.append(check_point_map[each][1])
+
+    return check_point_map.get_sorted_keys(), check_point_map.get_sorted_values()
 
 def format_check_point_summary(summary):
     conv_set = set()
@@ -254,7 +281,8 @@ def get_check_point(sim_name):
     global all_sims
     all_sims = read_sims_from_directories()
     folder=[key for key, value in all_sims.items() if key.startswith(sim_name)]
-    return gr.update(choices=folder, interactive=True)
+    f1, f2 = check_point_step_2_time(folder)
+    return [gr.update(choices=f1, interactive=True), gr.update(choices=f2, interactive=True)]
 
 def delete_simulation(sim_name, steps):
     return f"DELETE SIMULATION FOR {sim_name} on steps {steps}"
@@ -343,24 +371,25 @@ def main():
         with gr.Row():
             new_sim_name = gr.Textbox(label="Simulation Name", visible=False)
         with gr.Row():
-            all_check_pts = gr.Radio(choices=[], label="Select Simulations Check Points")
+            all_check_pts_step = gr.Radio(choices=[], label="Select Simulations Check Points")
+            all_check_pts_time = gr.Radio(choices=[], label="Select Simulations Check Points")
             summary_button = gr.Button("Refresh Check Point", interactive=False)
             # delete_button = gr.Button("Delete Simulation")
         check_pt_summary = gr.Textbox(label="Check Point Summary", interactive=False)
         selected_agents = gr.CheckboxGroup(list(agents.keys()), label="Select Agent", interactive=False)
         agent_summary_output = gr.Textbox(label="Agent Summary", interactive=False)
 
-        all_check_pts.change(get_check_point_summary, inputs=[all_check_pts], outputs=[check_pt_summary])
+        all_check_pts_time.change(get_check_point_summary, inputs=[all_check_pts_time], outputs=[check_pt_summary])
 
         save_button.click(save_setting, inputs=[sim_name, sim_check_freq], outputs=[new_sim_name, summary_button, save_button, start_button, reset_button])
         reset_button.click(reset_setting, inputs=[sim_name, sim_check_freq], outputs=[sim_name, new_sim_name, sim_start_hour, sim_start_mins, summary_button, save_button, start_button, reset_button])
 
-        new_sim_name.change(get_check_point, inputs=[new_sim_name], outputs =[all_check_pts])
-        summary_button.click(get_check_point, inputs=[new_sim_name], outputs = [all_check_pts])
+        new_sim_name.change(get_check_point, inputs=[new_sim_name], outputs =[all_check_pts_step, all_check_pts_time])
+        summary_button.click(get_check_point, inputs=[new_sim_name], outputs = [all_check_pts_step, all_check_pts_time])
         # delete_button.click(delete_simulation, inputs=[sim_name, sim_steps], outputs = sim_result)
 
-        all_check_pts.change(enable_buttom, inputs=[], outputs=[selected_agents])
-        selected_agents.change(get_summary, inputs=[all_check_pts, selected_agents], outputs=[agent_summary_output])
+        all_check_pts_time.change(enable_buttom, inputs=[], outputs=[selected_agents])
+        selected_agents.change(get_summary, inputs=[all_check_pts_time, selected_agents], outputs=[agent_summary_output])
 
 
 
