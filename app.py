@@ -3,7 +3,6 @@ import os
 import json
 import subprocess
 import datetime
-from sorted_key_value_store import SortedKeyValueStore
 
 sim_base_name = 'zora_gradio_25_skip_test'
 storage_path = "environment/frontend_server/storage"
@@ -65,6 +64,9 @@ def enable_buttom_with_condition(condition):
 
 def enable_buttom():
     return gr.update(interactive=True)
+
+def disable_buttom():
+    return gr.update(interactive=False)
 
 def read_json_from_directories(base_path, filename):
         data = {}
@@ -220,19 +222,14 @@ def dict_2_str(the_dict):
 def check_point_step_2_time(sim_name, check_points):
     global check_point_map
     check_point_map = {}
-    # check_point_sorted = SortedKeyValueStore()
-    # if sim_name not in check_point_map.get_sorted_keys():
-    #     check_point_map.insert(sim_name, {})
+
     offset = 0
-    if sim_name == "aka":
+    if sim_name == "aka": # manually fix a bug
         offset = 150
     
     for each in check_points:
         pattern = each.split("-")
-        # print(pattern)
         if pattern[2] not in check_point_map:
-        
-            # print(each)
             start_sec, end_sec = int(pattern[3]) * 10 + offset, int(pattern[4]) * 10 + offset
             start_time = datetime.timedelta(seconds=start_sec)
             end_time = datetime.timedelta(seconds=end_sec)
@@ -240,8 +237,7 @@ def check_point_step_2_time(sim_name, check_points):
             period =  f"{name} [{start_time} -- {end_time}]"
             check_point_map[period] = each
     sorted_map = dict(sorted(check_point_map.items(), key=lambda key_val: key_val[0]))
-    print(check_point_map)
-    result_time, result_step = [], []
+    # print(check_point_map)
 
     return sorted_map.values(), sorted_map.keys()
 
@@ -298,18 +294,17 @@ def delete_simulation(sim_name, steps):
 def update_step_range(all_sim_names):
     return gr.update(maximum=all_sims[all_sim_names]["step"], interactive=True)
 
-def set_replay(all_sim_names, step):
+def set_replay_step(all_sim_names, step):
     replay_link = f'http://localhost:8000/replay/{all_sim_names}/{step}/'
     return [replay_link, gr.update(interactive=True)]
 
-def set_replay_new(check_point_time):
+def set_replay(check_point_time):
     sim_name = check_point_map[check_point_time]
     step = sim_name.split("-")[3]
     replay_link = f'http://localhost:8000/replay/{sim_name}/{step}/'
     return [replay_link, gr.update(interactive=True)]
 
 def save_setting(sim_name, sim_check_freq):
-    #save_button.click(save_setting, inputs=[sim_name, sim_check_freq], outputs=[new_sim_name, hour, mins, summary_button, save_button, start_button, reset_button])
     return [sim_name,
             gr.update(interactive=True), # summary_button
             gr.update(interactive=False), # save_button
@@ -317,8 +312,7 @@ def save_setting(sim_name, sim_check_freq):
             gr.update(interactive=True)] # reset_button
 
 def reset_setting(sim_name, sim_check_freq):
-    # reset_button.click(reset_setting, inputs=[sim_name, sim_check_freq], outputs=[sim_name, new_sim_name, summary_button, save_button, start_button, reset_button])
-    return ["", "", 0, 0,
+      return ["", "", 0, 0,
             gr.update(interactive=False), # summary_button
             gr.update(interactive=True), # save_button
             gr.update(interactive=False), # start_button
@@ -332,6 +326,7 @@ def save_all_agents():
 def main():
     global agents, all_sims
     agents = read_json_from_directories(sim_path, agent_file_name)
+    agents = dict(sorted(agents.items(), key=lambda key_val: key_val[0]))
     all_sims = read_sims_from_directories()
 
     with gr.Blocks() as demo:
@@ -395,54 +390,52 @@ def main():
 
         #  ---------------- SIMULATION SUMMARY ------------------------
         gr.Markdown("## Simulation Summary")
-        # all_checkpoints = gr.Dropdown(list(all_sims.keys()),label="Select sim checkpoint")
-        with gr.Row():
-            new_sim_name = gr.Dropdown(sim_name_list, label="Select Simulations")
-            summary_button = gr.Button("Get Check Point")
-        with gr.Row():
-            all_check_pts_step = gr.Radio(choices=[], label="Select Simulations Check Points", visible=False)
-            all_check_pts_time = gr.Radio(choices=[], label="Select Simulations Check Points")
+        with gr.Column():
+            with gr.Row():
+                new_sim_name = gr.Dropdown(sim_name_list, label="Select Simulations")
+                summary_button = gr.Button("Get Check Point", interactive=False)
+            with gr.Row():
+                all_check_pts_step = gr.Radio(choices=[], label="Select Simulations Check Points", visible=False)
+                all_check_pts_time = gr.Radio(choices=[], label="Select Simulations Check Points")
+                sim_replay_button = gr.Button("Watch Simulation Replay", interactive=False)
+                link_text = gr.Textbox(label="REPLAY LINK", visible=False)
             # delete_button = gr.Button("Delete Simulation")
-        check_pt_summary = gr.Textbox(label="Check Point Summary", interactive=False)
+            check_pt_summary = gr.Textbox(label="Check Point Summary", interactive=False)
 
         selected_agents = gr.CheckboxGroup(list(agents.keys()), label="Select Agent", interactive=False)
         importance = gr.Number(label="Event Importance", value=5, minimum=0, maximum=10)
         agent_summary_output = gr.Textbox(label="Agent Summary", interactive=False)
 
         all_check_pts_time.change(get_check_point_summary, inputs=[all_check_pts_time], outputs=[check_pt_summary])
+        all_check_pts_time.change(set_replay, inputs=[all_check_pts_time], outputs=[link_text, sim_replay_button])
+        sim_replay_button.click(fn=None,inputs=link_text , js=f"(link_text) => {{ window.open(link_text, '_blank') }}")
 
-        # save_button.click(save_setting, inputs=[sim_name, sim_check_freq], outputs=[new_sim_name, summary_button, save_button, start_button, reset_button])
-        # reset_button.click(reset_setting, inputs=[sim_name, sim_check_freq], outputs=[sim_name, new_sim_name, sim_start_hour, sim_start_mins, summary_button, save_button, start_button, reset_button])
-
-        # new_sim_name.change(get_check_point, inputs=[new_sim_name], outputs =[all_check_pts_step, all_check_pts_time])
         summary_button.click(get_check_point, inputs=[new_sim_name], outputs = [all_check_pts_step, all_check_pts_time])
 
-        all_check_pts_time.change(enable_buttom, inputs=[], outputs=[selected_agents])
+        new_sim_name.change(enable_buttom, inputs=[], outputs=[selected_agents])
+        new_sim_name.change(enable_buttom, inputs=[], outputs=[summary_button])
+        new_sim_name.change(disable_buttom, inputs=[], outputs=[sim_replay_button])
+        # new_sim_name.change(empty_component, inputs=[], outputs=[selected_agents])
         selected_agents.change(get_summary, inputs=[all_check_pts_time, selected_agents, importance], outputs=[agent_summary_output])
         importance.change(get_summary, inputs=[all_check_pts_time, selected_agents, importance], outputs=[agent_summary_output])
 
 
 
-         #  ---------------- SIMULATION REPLAY ------------------------
-        gr.Markdown("## Simulation Replay")
-        with gr.Row():
-            all_sim_names = gr.Dropdown(list(all_sims.keys()), label="Select Simulations")
-            replay_start_hour = gr.Number(minimum=0, maximum=24, value=0, label="Replay Start Time (Hour)")
-            replay_start_mins = gr.Number(minimum=0, maximum=59, value=0, label="Replay Start Time (Mins)")
-            sim_replay_step = gr.Number(minimum=1, maximum=100, value=1, label="Steps", interactive=False, visible=False)
-            # sim_replay_button = gr.Button("Watch Simulation Replay", interactive=False)
-            sim_replay_button = gr.Button("Watch Simulation Replay", interactive=True)
-            link_text = gr.Textbox(label="REPLAY LINK", visible=False)
+        #  #  ---------------- SIMULATION REPLAY ------------------------
+        # gr.Markdown("## Simulation Replay")
+        # with gr.Row():
+        #     all_sim_names = gr.Dropdown(list(all_sims.keys()), label="Select Simulations")
+        #     replay_start_hour = gr.Number(minimum=0, maximum=24, value=0, label="Replay Start Time (Hour)")
+        #     replay_start_mins = gr.Number(minimum=0, maximum=59, value=0, label="Replay Start Time (Mins)")
+        #     sim_replay_step = gr.Number(minimum=1, maximum=100, value=1, label="Steps", interactive=False, visible=False)
+        #     # sim_replay_button = gr.Button("Watch Simulation Replay", interactive=False)
+        #     sim_replay_button = gr.Button("Watch Simulation Replay", interactive=True)
+        #     link_text = gr.Textbox(label="REPLAY LINK", visible=False)
 
-        replay_start_hour.change(time_2_step, inputs=[replay_start_hour, replay_start_mins], outputs=sim_replay_step)
-        replay_start_mins.change(time_2_step, inputs=[replay_start_hour, replay_start_mins], outputs=sim_replay_step)
-        all_sim_names.change(update_step_range, inputs=all_sim_names, outputs=[sim_replay_step])
+        # replay_start_hour.change(time_2_step, inputs=[replay_start_hour, replay_start_mins], outputs=sim_replay_step)
+        # replay_start_mins.change(time_2_step, inputs=[replay_start_hour, replay_start_mins], outputs=sim_replay_step)
+        # all_sim_names.change(update_step_range, inputs=all_sim_names, outputs=[sim_replay_step])
         # sim_replay_step.change(set_replay, inputs=[all_sim_names, sim_replay_step], outputs=[link_text, sim_replay_button])
-
-        all_check_pts_time.change(set_replay_new, inputs=[all_check_pts_time], outputs=[link_text, sim_replay_button])
-
-        sim_replay_button.click(fn=None,inputs=link_text , js=f"(link_text) => {{ window.open(link_text, '_blank') }}")
-
 
     demo.launch(server_port=8005, inbrowser=True, share=True)
     # demo.launch(server_port=8005, share=True,
