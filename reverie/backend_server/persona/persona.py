@@ -88,7 +88,7 @@ class Persona:
         if int(json_data[each]["node_count"]) > int(self.num_nodes):
           # new_generated nodes
           # print(created_hour, created_min, created_sec, total_sec, created_total_sec)
-          if json_data[each]['type'] == "event" and int(json_data[each]["poignancy"]) > 3:
+          if json_data[each]['type'] == "event":
             summary["event"][str(json_data[each]["created"])] = json_data[each]
             # summary["event"].append(str(json_data[each]["node_count"]) +" "+ str(json_data[each]["created"]) +" "+ str(json_data[each]["description"]) +" "+ str(json_data[each]["poignancy"]) + "\n")
           elif json_data[each]['type'] == "thought":

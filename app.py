@@ -13,7 +13,8 @@ agent_file_name = 'bootstrap_memory/scratch.json'
 script_path = './run_backend_automatic.sh'
 agents = {}
 all_sims = {}
-check_point_map = SortedKeyValueStore()
+sim_name_list = {"aka", "test"}
+check_point_map = {}
 
 def time_2_step(hour, mins):
     mins += hour * 60
@@ -27,6 +28,7 @@ def step_2_time(steps):
     return hour, mins
 
 def show_agent_info(agent_name):
+    global comfirmed_agent
     if agent_name in agents:
         agent = agents[agent_name]
         info = [agent["name"],
@@ -37,7 +39,7 @@ def show_agent_info(agent_name):
                 agent["currently"],
                 agent["lifestyle"],
                 agent["living_area"],
-                gr.update(interactive=False)
+                gr.update(value="Update Agent Information", interactive=False)
                 ]
         return info
     else:
@@ -53,7 +55,13 @@ def update_agent(agent_name, input_age, input_daily_req, input_innate, input_lea
     agents[agent_name]["living_area"] = input_living_area
     update_json_from_directories(sim_path, agent_file_name)
 
-    return [gr.update(interactive=False), f"Agent '{agent_name}' information update successfully."]
+    return gr.update(value="Updated Successfully!", interactive=False)
+
+def enable_buttom_with_condition(condition):
+    if condition:
+        return gr.update(interactive=True)
+    else:
+        return gr.update(interactive=False)
 
 def enable_buttom():
     return gr.update(interactive=True)
@@ -114,6 +122,8 @@ def update_json_from_directories(base_path, filename):
 
 def start_simulation(sim_name, steps, check_freq):
     try:
+        global sim_name_list
+        sim_name_list.append(sim_base_name)
         print("Current Directory:", os.getcwd())
         with open(f"{storage_path}/{sim_base_name}/{meta_file}", 'r') as f:
             temp_data = json.load(f)
@@ -152,7 +162,7 @@ def summary_simulation(sim_name, steps):
 def get_check_point_summary(sim_check_point_time):
     all_agent_name = agents.keys()
     summary = {}
-    sim_name = check_point_map.get_key(sim_check_point_time)
+    sim_name = check_point_map[sim_check_point_time]
     base_path = f"{storage_path}/{sim_name}/personas"
     with os.scandir(base_path) as entries:
         for entry in entries:
@@ -172,12 +182,12 @@ def get_check_point_summary(sim_check_point_time):
                     return "Summary is not ready, please wait for the current checkpoint of simulation to finish."
     return format_check_point_summary(summary)
 
-def get_summary(sim_check_point_time, agents):
+def get_summary(sim_check_point_time, agents, importance):
     if len(agents) < 1:
         return "Please select at least one agents to see the summary details."
     else:
         summary = ""
-        sim_name = check_point_map.get_key(sim_check_point_time)
+        sim_name = check_point_map[sim_check_point_time]
         base_path = f"{storage_path}/{sim_name}/personas"
         with os.scandir(base_path) as entries:
             for entry in entries:
@@ -188,7 +198,7 @@ def get_summary(sim_check_point_time, agents):
                             with open(file_path, 'r') as json_file:
                                 temp = json.load(json_file)
                                 temp_summary = temp["new summary"]
-                                summary += entry.name + "\n" + format_summary(temp_summary, 5) + "\n"
+                                summary += entry.name + "\n" + format_summary(temp_summary, importance) + "\n"
                         except json.JSONDecodeError as e:
                             print(f"Error decoding JSON from {file_path}: {e}")
                         except Exception as e:
@@ -207,31 +217,33 @@ def dict_2_str(the_dict):
         result += f" {k} \n {temp} \n"
     return result
 
-def check_point_step_2_time(check_points):
+def check_point_step_2_time(sim_name, check_points):
     global check_point_map
+    check_point_map = {}
+    # check_point_sorted = SortedKeyValueStore()
+    # if sim_name not in check_point_map.get_sorted_keys():
+    #     check_point_map.insert(sim_name, {})
+    offset = 0
+    if sim_name == "aka":
+        offset = 150
     
     for each in check_points:
         pattern = each.split("-")
-        print(pattern)
-        if each not in check_point_map.get_sorted_keys():
-            start_sec, end_sec = int(pattern[3]) * 10, int(pattern[4]) * 10
+        # print(pattern)
+        if pattern[2] not in check_point_map:
+        
+            # print(each)
+            start_sec, end_sec = int(pattern[3]) * 10 + offset, int(pattern[4]) * 10 + offset
             start_time = datetime.timedelta(seconds=start_sec)
             end_time = datetime.timedelta(seconds=end_sec)
-            # start_hour, start_min = step_2_time(int(pattern[3]))
-            # end_hour, end_min = step_2_time(int(pattern[4]))
             name = pattern[0]
             period =  f"{name} [{start_time} -- {end_time}]"
-            check_point_map.insert(each, period)
+            check_point_map[period] = each
+    sorted_map = dict(sorted(check_point_map.items(), key=lambda key_val: key_val[0]))
     print(check_point_map)
-    # result_key = list(check_point_map.keys())
-    # result_key.sort()
-    # result_time, result_step = [], []
+    result_time, result_step = [], []
 
-    # for each in result_key:
-    #     result_step.append(check_point_map[each][0])
-    #     result_time.append(check_point_map[each][1])
-
-    return check_point_map.get_sorted_keys(), check_point_map.get_sorted_values()
+    return sorted_map.values(), sorted_map.keys()
 
 def format_check_point_summary(summary):
     conv_set = set()
@@ -249,10 +261,6 @@ def format_check_point_summary(summary):
                         temp_descript = temp_list[0]   
                 except:
                     temp_descript = v["description"]
-                # print("------")
-                # print(temp_descript)
-                # print(v["description"])
-                # print("------")
 
                 if temp_descript not in conv_set:
                     conv_set.add(temp_descript)
@@ -260,7 +268,7 @@ def format_check_point_summary(summary):
                         dict_format[k].append(v["description"])
                     else:
                         dict_format[k] = [v["description"]]
-
+    dict_format = dict(sorted(dict_format.items(), key=lambda key_val: key_val[0]))
     return dict_2_str(dict_format)
 
 def format_summary(summary, score):
@@ -281,7 +289,7 @@ def get_check_point(sim_name):
     global all_sims
     all_sims = read_sims_from_directories()
     folder=[key for key, value in all_sims.items() if key.startswith(sim_name)]
-    f1, f2 = check_point_step_2_time(folder)
+    f1, f2 = check_point_step_2_time(sim_name, folder)
     return [gr.update(choices=f1, interactive=True), gr.update(choices=f2, interactive=True)]
 
 def delete_simulation(sim_name, steps):
@@ -292,6 +300,12 @@ def update_step_range(all_sim_names):
 
 def set_replay(all_sim_names, step):
     replay_link = f'http://localhost:8000/replay/{all_sim_names}/{step}/'
+    return [replay_link, gr.update(interactive=True)]
+
+def set_replay_new(check_point_time):
+    sim_name = check_point_map[check_point_time]
+    step = sim_name.split("-")[3]
+    replay_link = f'http://localhost:8000/replay/{sim_name}/{step}/'
     return [replay_link, gr.update(interactive=True)]
 
 def save_setting(sim_name, sim_check_freq):
@@ -310,6 +324,11 @@ def reset_setting(sim_name, sim_check_freq):
             gr.update(interactive=False), # start_button
             gr.update(interactive=False)] # reset_button
 
+def save_all_agents():
+    def invisible():
+        return [gr.update(interactive=False)]*9 + [gr.update(value= "Comfirmed", interactive=False)] + [gr.update(value=False)] + [gr.update(interactive=True)]*4 + [gr.update(visible=True)]*2
+    return invisible
+
 def main():
     global agents, all_sims
     agents = read_json_from_directories(sim_path, agent_file_name)
@@ -322,43 +341,52 @@ def main():
             agent_name = gr.Radio(list(agents.keys()), label="Select Agent")
              
         gr.Markdown("## Agent Details")
+        with gr.Row():
+            selected_agent_name = gr.Label(label="Name")
+            update_button = gr.Button("Update Agent Information", interactive=False)
+            update_agent_enable = gr.Checkbox(value=True, visible=False)
         with gr.Column():
             with gr.Row():
-                selected_agent_name = gr.Textbox(label="Name", interactive=False)
-                update_button = gr.Button("Update Agent Information", interactive=False)
-            input_age = gr.Number(label="Age")
+                input_age = gr.Number(label="Age")
+                input_innate = gr.Textbox(label="Innate")
+                input_living_area = gr.Textbox(label="Living Area")
             input_daily_req = gr.Textbox(label="Daily Plan Requirement")
-            input_innate = gr.Textbox(label="Innate")
             input_learned = gr.Textbox(label="Learned")
             input_currently = gr.Textbox(label="Currently")
             input_lifestyle = gr.Textbox(label="Lifestyle")
-            input_living_area = gr.Textbox(label="Living Area")
             input_memory =  gr.Textbox(label="Memory")
+
+        # gr.Markdown("## Confirmed Agent Details")
+        confirm_all_agent_button = gr.Button("Click to Confirm All Agents Information")
 
         gr.Markdown("## Simulation Settings")
         with gr.Row():
-            sim_name = gr.Text(label="New Simulation Name", placeholder="new_sim")
-            sim_start_hour = gr.Number(minimum=0, maximum=24, value=0, label="Hour")
-            sim_start_mins = gr.Number(minimum=0, maximum=59, value=0, label="Mins")
-            sim_check_freq = gr.Number(minimum=10, maximum=120, value=10, step=5, label="Check Point Frequency (mins)")
-            sim_steps = gr.Number(label="Simulation Steps")
+            sim_name = gr.Text(label="New Simulation Name", placeholder="new_sim", interactive=False)
+            sim_start_hour = gr.Number(minimum=0, maximum=24, value=0, label="Hour", interactive=False)
+            sim_start_mins = gr.Number(minimum=0, maximum=59, value=0, label="Mins", interactive=False)
+            sim_check_freq = gr.Number(minimum=10, maximum=120, value=10, step=5, label="Check Point Frequency (mins)", interactive=False)
+            sim_steps = gr.Number(label="Simulation Steps", visible=False)
 
         with gr.Row():
-            save_button = gr.Button("Save")
-            reset_button = gr.Button("Reset")
-            start_button = gr.Button("Start Simulation!")
-            watch_sim_button = gr.Button("Watch Live Simulation",link='http://localhost:8000/simulator_home') 
-
+            start_button = gr.Button("Start Simulation!", visible=False)
+            watch_sim_button = gr.Button("Watch Live Simulation",link='http://localhost:8000/simulator_home', visible=False) 
+        
+        confirm_all_agent_button.click(save_all_agents(), None, [input_age, input_daily_req, input_innate, 
+                                                                 input_learned, input_currently, input_lifestyle, 
+                                                                 input_living_area, input_memory, 
+                                                                 update_button, confirm_all_agent_button, update_agent_enable,
+                                                                 sim_name, sim_start_hour, sim_start_mins, sim_check_freq, 
+                                                                 start_button, watch_sim_button])
+        
         std_output = gr.Textbox(label="Running Output")
-        sim_result = gr.Textbox(label="Simulation Result")
 
         input_list = [input_age, input_daily_req, input_innate, input_learned, input_currently, input_lifestyle, input_living_area, input_memory]     
         # Assign change event to each input to enable update button
         for input_field in input_list:
-            input_field.change(enable_buttom, inputs=None, outputs=update_button)
+            input_field.change(enable_buttom_with_condition, inputs=[update_agent_enable], outputs=[update_button])
 
         agent_name.change(show_agent_info, inputs=[agent_name], outputs=[selected_agent_name, input_age, input_daily_req, input_innate, input_learned, input_currently, input_lifestyle, input_living_area, update_button])
-        update_button.click(update_agent, inputs=[agent_name, input_age, input_daily_req, input_innate, input_learned, input_currently, input_lifestyle, input_living_area], outputs=[update_button, std_output])
+        update_button.click(update_agent, inputs=[agent_name, input_age, input_daily_req, input_innate, input_learned, input_currently, input_lifestyle, input_living_area], outputs=[update_button])
         
         sim_start_hour.change(time_2_step, inputs=[sim_start_hour, sim_start_mins], outputs=sim_steps)
         sim_start_mins.change(time_2_step, inputs=[sim_start_hour, sim_start_mins], outputs=sim_steps)
@@ -369,28 +397,29 @@ def main():
         gr.Markdown("## Simulation Summary")
         # all_checkpoints = gr.Dropdown(list(all_sims.keys()),label="Select sim checkpoint")
         with gr.Row():
-            new_sim_name = gr.Textbox(label="Simulation Name", visible=False)
+            new_sim_name = gr.Dropdown(sim_name_list, label="Select Simulations")
+            summary_button = gr.Button("Get Check Point")
         with gr.Row():
-            all_check_pts_step = gr.Radio(choices=[], label="Select Simulations Check Points")
+            all_check_pts_step = gr.Radio(choices=[], label="Select Simulations Check Points", visible=False)
             all_check_pts_time = gr.Radio(choices=[], label="Select Simulations Check Points")
-            summary_button = gr.Button("Refresh Check Point", interactive=False)
             # delete_button = gr.Button("Delete Simulation")
         check_pt_summary = gr.Textbox(label="Check Point Summary", interactive=False)
+
         selected_agents = gr.CheckboxGroup(list(agents.keys()), label="Select Agent", interactive=False)
+        importance = gr.Number(label="Event Importance", value=5, minimum=0, maximum=10)
         agent_summary_output = gr.Textbox(label="Agent Summary", interactive=False)
 
         all_check_pts_time.change(get_check_point_summary, inputs=[all_check_pts_time], outputs=[check_pt_summary])
 
-        save_button.click(save_setting, inputs=[sim_name, sim_check_freq], outputs=[new_sim_name, summary_button, save_button, start_button, reset_button])
-        reset_button.click(reset_setting, inputs=[sim_name, sim_check_freq], outputs=[sim_name, new_sim_name, sim_start_hour, sim_start_mins, summary_button, save_button, start_button, reset_button])
+        # save_button.click(save_setting, inputs=[sim_name, sim_check_freq], outputs=[new_sim_name, summary_button, save_button, start_button, reset_button])
+        # reset_button.click(reset_setting, inputs=[sim_name, sim_check_freq], outputs=[sim_name, new_sim_name, sim_start_hour, sim_start_mins, summary_button, save_button, start_button, reset_button])
 
-        new_sim_name.change(get_check_point, inputs=[new_sim_name], outputs =[all_check_pts_step, all_check_pts_time])
+        # new_sim_name.change(get_check_point, inputs=[new_sim_name], outputs =[all_check_pts_step, all_check_pts_time])
         summary_button.click(get_check_point, inputs=[new_sim_name], outputs = [all_check_pts_step, all_check_pts_time])
-        # delete_button.click(delete_simulation, inputs=[sim_name, sim_steps], outputs = sim_result)
 
         all_check_pts_time.change(enable_buttom, inputs=[], outputs=[selected_agents])
-        selected_agents.change(get_summary, inputs=[all_check_pts_time, selected_agents], outputs=[agent_summary_output])
-
+        selected_agents.change(get_summary, inputs=[all_check_pts_time, selected_agents, importance], outputs=[agent_summary_output])
+        importance.change(get_summary, inputs=[all_check_pts_time, selected_agents, importance], outputs=[agent_summary_output])
 
 
 
@@ -400,14 +429,17 @@ def main():
             all_sim_names = gr.Dropdown(list(all_sims.keys()), label="Select Simulations")
             replay_start_hour = gr.Number(minimum=0, maximum=24, value=0, label="Replay Start Time (Hour)")
             replay_start_mins = gr.Number(minimum=0, maximum=59, value=0, label="Replay Start Time (Mins)")
-            sim_replay_step = gr.Number(minimum=1, maximum=100, value=1, label="Steps", interactive=False)
-            sim_replay_button = gr.Button("Watch Simulation Replay", interactive=False)
+            sim_replay_step = gr.Number(minimum=1, maximum=100, value=1, label="Steps", interactive=False, visible=False)
+            # sim_replay_button = gr.Button("Watch Simulation Replay", interactive=False)
+            sim_replay_button = gr.Button("Watch Simulation Replay", interactive=True)
             link_text = gr.Textbox(label="REPLAY LINK", visible=False)
 
         replay_start_hour.change(time_2_step, inputs=[replay_start_hour, replay_start_mins], outputs=sim_replay_step)
         replay_start_mins.change(time_2_step, inputs=[replay_start_hour, replay_start_mins], outputs=sim_replay_step)
         all_sim_names.change(update_step_range, inputs=all_sim_names, outputs=[sim_replay_step])
-        sim_replay_step.change(set_replay, inputs=[all_sim_names, sim_replay_step], outputs=[link_text, sim_replay_button])
+        # sim_replay_step.change(set_replay, inputs=[all_sim_names, sim_replay_step], outputs=[link_text, sim_replay_button])
+
+        all_check_pts_time.change(set_replay_new, inputs=[all_check_pts_time], outputs=[link_text, sim_replay_button])
 
         sim_replay_button.click(fn=None,inputs=link_text , js=f"(link_text) => {{ window.open(link_text, '_blank') }}")
 

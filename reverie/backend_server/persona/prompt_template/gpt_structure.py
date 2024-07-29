@@ -19,7 +19,7 @@ with open(config_path, "r") as f:
 
 def setup_client(type: str, config: dict):
   """Setup the OpenAI client.
-
+ 
   Args:
       type (str): the type of client. Either "azure" or "openai".
       config (dict): the configuration for the client.
