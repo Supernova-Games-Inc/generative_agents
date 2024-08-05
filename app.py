@@ -393,7 +393,7 @@ def main():
         with gr.Column():
             with gr.Row():
                 new_sim_name = gr.Dropdown(sim_name_list, label="Select Simulations")
-                summary_button = gr.Button("Get Check Point", interactive=False)
+                get_check_pts_button = gr.Button("Get Check Point", interactive=False)
             with gr.Row():
                 all_check_pts_step = gr.Radio(choices=[], label="Select Simulations Check Points", visible=False)
                 all_check_pts_time = gr.Radio(choices=[], label="Select Simulations Check Points")
@@ -410,11 +410,12 @@ def main():
         all_check_pts_time.change(set_replay, inputs=[all_check_pts_time], outputs=[link_text, sim_replay_button])
         sim_replay_button.click(fn=None,inputs=link_text , js=f"(link_text) => {{ window.open(link_text, '_blank') }}")
 
-        summary_button.click(get_check_point, inputs=[new_sim_name], outputs = [all_check_pts_step, all_check_pts_time])
+        get_check_pts_button.click(get_check_point, inputs=[new_sim_name], outputs = [all_check_pts_step, all_check_pts_time])
 
         new_sim_name.change(enable_buttom, inputs=[], outputs=[selected_agents])
-        new_sim_name.change(enable_buttom, inputs=[], outputs=[summary_button])
+        new_sim_name.change(enable_buttom, inputs=[], outputs=[get_check_pts_button])
         new_sim_name.change(disable_buttom, inputs=[], outputs=[sim_replay_button])
+        new_sim_name.change(get_check_point, inputs=[new_sim_name], outputs = [all_check_pts_step, all_check_pts_time])
         # new_sim_name.change(empty_component, inputs=[], outputs=[selected_agents])
         selected_agents.change(get_summary, inputs=[all_check_pts_time, selected_agents, importance], outputs=[agent_summary_output])
         importance.change(get_summary, inputs=[all_check_pts_time, selected_agents, importance], outputs=[agent_summary_output])
