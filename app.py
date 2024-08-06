@@ -1,10 +1,11 @@
 import gradio as gr
+import re
 import os
 import json
 import subprocess
 import datetime
 
-sim_base_name = 'zora_gradio_25_skip_test'
+sim_base_name = 'cook'
 storage_path = "environment/frontend_server/storage"
 sim_path = f"{storage_path}/{sim_base_name}/personas"
 meta_file = f"reverie/meta.json"
@@ -12,7 +13,7 @@ agent_file_name = 'bootstrap_memory/scratch.json'
 script_path = './run_backend_automatic.sh'
 agents = {}
 all_sims = {}
-sim_name_list = {"aka", "test"}
+sim_name_list = {"aka", "test", 'new_cook_c'}
 check_point_map = {}
 
 def time_2_step(hour, mins):
@@ -209,7 +210,11 @@ def get_summary(sim_check_point_time, agents, importance):
                         print(file_path, os.path.exists(file_path))
                         return "Summary is not ready, please wait for the current checkpoint of simulation to finish."
         return summary
-    
+def extract_start_time(key):
+    time_pattern = re.compile(r"\[(\d{1,2}:\d{2}:\d{2}) --")
+    start_time_str = time_pattern.search(key).group(1)
+    return datetime.strptime(start_time_str, "%H:%M:%S")
+
 def dict_2_str(the_dict): 
     result = ""
     for k,v in the_dict.items():
@@ -218,6 +223,13 @@ def dict_2_str(the_dict):
             temp += str(i+1) + " : " + each + "\n"
         result += f" {k} \n {temp} \n"
     return result
+
+def format_timedelta(td):
+    total_seconds = int(td.total_seconds())
+    hours, remainder = divmod(total_seconds, 3600)
+    minutes, seconds = divmod(remainder, 60)
+    # Ensuring two-digit hours
+    return f"{hours:02}:{minutes:02}:{seconds:02}"
 
 def check_point_step_2_time(sim_name, check_points):
     global check_point_map
@@ -231,11 +243,12 @@ def check_point_step_2_time(sim_name, check_points):
         pattern = each.split("-")
         if pattern[2] not in check_point_map:
             start_sec, end_sec = int(pattern[3]) * 10 + offset, int(pattern[4]) * 10 + offset
-            start_time = datetime.timedelta(seconds=start_sec)
-            end_time = datetime.timedelta(seconds=end_sec)
+            start_time = format_timedelta(datetime.timedelta(seconds=start_sec))
+            end_time = format_timedelta(datetime.timedelta(seconds=end_sec))
             name = pattern[0]
             period =  f"{name} [{start_time} -- {end_time}]"
             check_point_map[period] = each
+    # sorted_map = dict(sorted(check_point_map.items(), key=lambda key_val: key_val[0]))
     sorted_map = dict(sorted(check_point_map.items(), key=lambda key_val: key_val[0]))
     # print(check_point_map)
 
