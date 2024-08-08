@@ -6,12 +6,15 @@ Description: Wrapper functions for calling OpenAI APIs.
 """
 import time 
 import json
+import os
 from pathlib import Path
 from openai import AzureOpenAI, OpenAI
 
 from utils import *
 from openai_cost_logger import DEFAULT_LOG_PATH
 from persona.prompt_template.openai_logger_singleton import OpenAICostLogger_Singleton
+
+openai_api_key = os.getenv("OPENAI_API_KEY")
 
 config_path = Path("../../openai_config.json")
 with open(config_path, "r") as f:
@@ -38,7 +41,8 @@ def setup_client(type: str, config: dict):
     )
   elif type == "openai":
     client = OpenAI(
-        api_key=config["key"],
+        # api_key=config["key"],
+        api_key=openai_api_key,
     )
   else:
     raise ValueError("Invalid client")
@@ -51,7 +55,7 @@ if openai_config["client"] == "azure":
       "api-version": openai_config["model-api-version"],
   })
 elif openai_config["client"] == "openai":
-  client = setup_client("openai", { "key": openai_config["model-key"] })
+  client = setup_client("openai", { "key": openai_api_key})
 
 if openai_config["embeddings-client"] == "azure":  
   embeddings_client = setup_client("azure", {
@@ -60,7 +64,7 @@ if openai_config["embeddings-client"] == "azure":
       "api-version": openai_config["embeddings-api-version"],
   })
 elif openai_config["embeddings-client"] == "openai":
-  embeddings_client = setup_client("openai", { "key": openai_config["embeddings-key"] })
+  embeddings_client = setup_client("openai", { "key": openai_api_key })
 else:
   raise ValueError("Invalid embeddings client")
 
