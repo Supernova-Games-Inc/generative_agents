@@ -13,7 +13,7 @@ agent_file_name = 'bootstrap_memory/scratch.json'
 script_path = './run_backend_automatic.sh'
 agents = {}
 all_sims = {}
-sim_name_list = {"aka", "test", 'new_cook_c'}
+sim_name_list = {"aka", "test", 'new_cook_c', 'cook_world  '}
 check_point_map = {}
 
 def time_2_step(hour, mins):

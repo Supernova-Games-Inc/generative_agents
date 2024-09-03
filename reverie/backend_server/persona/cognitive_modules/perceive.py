@@ -48,8 +48,11 @@ def perceive(persona, maze):
 
   # We then store the perceived space. Note that the s_mem of the persona is
   # in the form of a tree constructed using dictionaries. 
+  # print(nearby_tiles)
   for i in nearby_tiles: 
     i = maze.access_tile(i)
+    # print("------what is it--------")
+    # print(i)
     if i["world"]: 
       if (i["world"] not in persona.s_mem.tree): 
         persona.s_mem.tree[i["world"]] = {}
@@ -61,6 +64,7 @@ def perceive(persona, maze):
                                               [i["sector"]]): 
         persona.s_mem.tree[i["world"]][i["sector"]][i["arena"]] = []
     if i["game_object"]: 
+      # print(i["game_object"])
       if (i["game_object"] not in persona.s_mem.tree[i["world"]]
                                                     [i["sector"]]
                                                     [i["arena"]]): 

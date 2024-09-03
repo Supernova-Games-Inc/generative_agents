@@ -41,10 +41,10 @@ def execute(persona, maze, personas, plan):
     # <target_tiles> is a list of tile coordinates where the persona may go 
     # to execute the current action. The goal is to pick one of them.
     target_tiles = None
-
-    print (plan)
+    print("=-===== i would like to know the plan ======", plan)
 
     if "<persona>" in plan: 
+      print("interaction?")
       # Executing persona-persona interaction.
       target_p_tile = (personas[plan.split("<persona>")[-1].strip()]
                        .scratch.curr_tile)
@@ -69,6 +69,7 @@ def execute(persona, maze, personas, plan):
           target_tiles = [potential_path[int(len(potential_path)/2+1)]]
     
     elif "<waiting>" in plan: 
+      print("waiting?")
       # Executing interaction where the persona has decided to wait before 
       # executing their action.
       x = int(plan.split()[1])
@@ -76,25 +77,36 @@ def execute(persona, maze, personas, plan):
       target_tiles = [[x, y]]
 
     elif "<random>" in plan: 
+      print("random?")
       # Executing a random location action.
       plan = ":".join(plan.split(":")[:-1])
       target_tiles = maze.address_tiles[plan]
       target_tiles = random.sample(list(target_tiles), 1)
 
     else: 
+      print("default?")
       # This is our default execution. We simply take the persona to the
       # location where the current action is taking place. 
       # Retrieve the target addresses. Again, plan is an action address in its
       # string form. <maze.address_tiles> takes this and returns candidate 
       # coordinates. 
+      print("check here")
+      print(maze.address_tiles)
       if plan not in maze.address_tiles: 
-        maze.address_tiles["Johnson Park:park:park garden"] #ERRORRRRRRR
+        print("---what is the plan---")
+        print(plan)
+        print(maze.address_tiles)
+        # maze.address_tiles["Central Park:park:park garden"] #ERRORRRRRRR
+        maze.address_tiles[plan] #ERRORRRRRRR
       else: 
+        print("check here ???")
+        print(maze.address_tiles[plan])
         target_tiles = maze.address_tiles[plan]
 
     # There are sometimes more than one tile returned from this (e.g., a tabe
     # may stretch many coordinates). So, we sample a few here. And from that 
     # random sample, we will take the closest ones. 
+    print("i know the plan ")
     if len(target_tiles) < 4: 
       target_tiles = random.sample(list(target_tiles), len(target_tiles))
     else:

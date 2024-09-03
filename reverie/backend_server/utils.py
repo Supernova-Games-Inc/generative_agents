@@ -5,7 +5,8 @@ env_visuals = f"{maze_assets_loc}/the_ville/visuals"
 fs_storage = "../../environment/frontend_server/storage"
 fs_temp_storage = "../../environment/frontend_server/temp_storage"
 
-collision_block_id = "32125"
+# collision_block_id = "32125"
+collision_block_id = "1"
 
 # Verbose 
 debug = True
