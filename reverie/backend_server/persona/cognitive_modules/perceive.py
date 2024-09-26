@@ -60,6 +60,9 @@ def perceive(persona, maze):
       if (i["sector"] not in persona.s_mem.tree[i["world"]]): 
         persona.s_mem.tree[i["world"]][i["sector"]] = {}
     if i["arena"]: 
+      # print(i)
+      # print("Error--")
+      # print(i["arena"])
       if (i["arena"] not in persona.s_mem.tree[i["world"]]
                                               [i["sector"]]): 
         persona.s_mem.tree[i["world"]][i["sector"]][i["arena"]] = []

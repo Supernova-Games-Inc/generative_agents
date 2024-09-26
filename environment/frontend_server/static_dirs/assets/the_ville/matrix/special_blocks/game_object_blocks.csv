@@ -1,15 +1,39 @@
 81, the Ville, <all>, bed
 82, the Ville, <all>, desk
 83, the Ville, <all>, closet
+84, the Ville, <all>, sofa
+85, the Ville, <all>, television
+86, the Ville, <all>, chair
+87, the Ville, <all>, piano
+88, the Ville, <all>, microphone
+89, the Ville, <all>, audience seating
+90, the Ville, <all>, exhibit
 91, the Ville, <all>, bathroom sink
-92, the Ville, <all>, shower
-93, the Ville, <all>, toilet
-101, the Ville, <all>, kitchen sink
-102, the Ville, <all>, refrigerator
-103, the Ville, <all>, toaster
-104, the Ville, <all>, cooking area
-105, the Ville, <all>, cafe customer seating
+92, the Ville, <all>, toilet
+93, the Ville, <all>, shower
+94, the Ville, <all>, locker
+96, the Ville, <all>, front desk
+97, the Ville, <all>, boat
+101, the Ville, <all>, customer seating
+102, the Ville, <all>, behind the counter
+103, the Ville, <all>, cooking area
+104, the Ville, <all>, kitchen sink
+105, the Ville, <all>, refrigerator
+106, the Ville, <all>, street store product shelf
+107, the Ville, <all>, behind the street store counter
+108, the Ville, <all>, street store counter
+109, the Ville, <all>, shopping mall product shelf
+110, the Ville, <all>, clothes product shelf
 111, the Ville, <all>, supply store product shelf
 112, the Ville, <all>, behind the supply store counter
 113, the Ville, <all>, supply store counter
-121, the Ville, <all>, park garden
+114, the Ville, <all>, treadmile
+115, the Ville, <all>, swimming pool
+121, the Ville, <all>, office desk
+122, the Ville, <all>, office chair
+123, the Ville, <all>, stage
+125, the Ville, <all>, bookshelf
+131, the Ville, <all>, park garden
+132, the Ville, <all>, back garden
+134, the Ville, <all>, beach chair
+135, the Ville, <all>, sea

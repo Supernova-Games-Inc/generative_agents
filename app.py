@@ -5,7 +5,7 @@ import json
 import subprocess
 import datetime
 
-sim_base_name = 'cook'
+sim_base_name = 'map_big'
 storage_path = "environment/frontend_server/storage"
 sim_path = f"{storage_path}/{sim_base_name}/personas"
 meta_file = f"reverie/meta.json"
@@ -13,7 +13,7 @@ agent_file_name = 'bootstrap_memory/scratch.json'
 script_path = './run_backend_automatic.sh'
 agents = {}
 all_sims = {}
-sim_name_list = {"aka", "test", 'new_cook_c', 'cook_world  '}
+sim_name_list = {"aka", "test", 'new_cook_c', 'map_big_full'}
 check_point_map = {}
 
 def time_2_step(hour, mins):
